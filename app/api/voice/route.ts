@@ -7,9 +7,9 @@ const groq = new OpenAI({
 });
 
 const LANGUAGE_NAMES: Record<string, string> = {
-  hi: "Hindi",
-  kn: "Kannada",
-  te: "Telugu",
+  hi: "Hindi. Write your entire response using only Devanagari script (हिंदी). Do not use any English words or Roman script.",
+  kn: "Kannada. Write your entire response using only Kannada script (ಕನ್ನಡ). Do not use any English words or Roman script.",
+  te: "Telugu. Write your entire response using only Telugu script (తెలుగు). Do not use any English words or Roman script.",
 };
 
 export async function POST(req: Request) {

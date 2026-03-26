@@ -2,9 +2,9 @@
 // Docs: https://docs.sarvam.ai/api-reference-docs/api-guides-tutorials/text-to-speech/rest-api
 
 const LANG_MAP: Record<string, { code: string; speaker: string }> = {
-  hi: { code: "hi-IN", speaker: "anushka" },
-  kn: { code: "kn-IN", speaker: "anushka" },
-  te: { code: "te-IN", speaker: "anushka" },
+  hi: { code: "hi-IN", speaker: "anand" },
+  kn: { code: "kn-IN", speaker: "kavitha" },
+  te: { code: "te-IN", speaker: "roopa" },
 };
 
 export async function POST(req: Request) {
