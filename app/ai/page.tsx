@@ -46,6 +46,7 @@ export default function HealthAssistant() {
       const data = await res.json();
       const reply = res.ok ? data.reply : `Error: ${data.error}`;
       setMessages((m) => [...m, { role: "agent", text: reply, type: "text" }]);
+      if (res.ok) speak(reply, lang.code);
     } catch (e) {
       setMessages((m) => [...m, { role: "agent", text: `Failed: ${String(e)}`, type: "text" }]);
     } finally {
@@ -60,7 +61,32 @@ export default function HealthAssistant() {
     }
   };
 
-  // ── Voice chat ─────────────────────────────────────────────
+  // ── Speak using Sarvam AI TTS ─────────────────────────────
+  const speak = async (text: string, langCode: string) => {
+    try {
+      const res = await fetch("/api/tts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, language: langCode }),
+      });
+      const data = await res.json();
+      if (data.audio) {
+        const audioBytes = Uint8Array.from(atob(data.audio), (c) => c.charCodeAt(0));
+        const blob = new Blob([audioBytes], { type: "audio/wav" });
+        const url = URL.createObjectURL(blob);
+        new Audio(url).play();
+      } else {
+        // fallback to browser TTS if Sarvam fails
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.lang = lang.tts;
+        window.speechSynthesis.speak(utterance);
+      }
+    } catch {
+      const utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = lang.tts;
+      window.speechSynthesis.speak(utterance);
+    }
+  };
   const startRecording = async () => {
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     mediaRecorder.current = new MediaRecorder(stream);
@@ -86,9 +112,7 @@ export default function HealthAssistant() {
         setMessages((m) => [...m, { role: "user", text: `🎤 ${data.transcription}`, type: "voice" }]);
         setMessages((m) => [...m, { role: "agent", text: data.reply, type: "voice" }]);
 
-        const utterance = new SpeechSynthesisUtterance(data.reply);
-        utterance.lang = lang.tts;
-        window.speechSynthesis.speak(utterance);
+        speak(data.reply, lang.code);
       } catch (e) {
         setMessages((m) => [...m, { role: "agent", text: `Failed: ${String(e)}`, type: "voice" }]);
       } finally {
