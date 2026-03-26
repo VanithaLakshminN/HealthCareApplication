@@ -33,14 +33,17 @@ export default function VoiceAgent() {
           return;
         }
 
-        const textReply = decodeURIComponent(res.headers.get("X-Reply") || "");
-        const audioBlob = await res.blob();
+        const data = await res.json();
+        const reply = data.reply || "No reply received";
+        const transcription = data.transcription || "🎤 Voice message";
 
-        setMessages((m) => [...m, { role: "user", text: "🎤 Voice message" }]);
-        setMessages((m) => [...m, { role: "agent", text: textReply || "No reply received" }]);
+        setMessages((m) => [...m, { role: "user", text: transcription }]);
+        setMessages((m) => [...m, { role: "agent", text: reply }]);
 
-        const url = URL.createObjectURL(audioBlob);
-        new Audio(url).play();
+        // Browser built-in TTS (works without any API)
+        const utterance = new SpeechSynthesisUtterance(reply);
+        utterance.lang = "hi-IN";
+        window.speechSynthesis.speak(utterance);
       } catch (e) {
         setMessages((m) => [...m, { role: "agent", text: `Failed: ${String(e)}` }]);
       } finally {
