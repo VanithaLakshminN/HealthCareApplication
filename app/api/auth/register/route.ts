@@ -1,28 +1,36 @@
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
-import { Resend } from "resend";
 import { NextResponse } from "next/server";
-
-const resend = new Resend(process.env.RESEND_API_KEY);
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 async function sendOTPEmail(email: string, otp: string) {
-  await resend.emails.send({
-    from: "HealthCare Pro <onboarding@resend.dev>",
-    to: email,
-    subject: "Your OTP for HealthCare Pro Registration",
-    html: `
-      <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px">
-        <h2 style="color:#2563eb">HealthCare Pro</h2>
-        <p>Your OTP for registration is:</p>
-        <h1 style="letter-spacing:8px;color:#1d4ed8">${otp}</h1>
-        <p style="color:#6b7280;font-size:13px">This OTP expires in 10 minutes. Do not share it with anyone.</p>
-      </div>`,
+  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+    method: "POST",
+    headers: {
+      "api-key": process.env.BREVO_API_KEY!,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      sender: { name: "HealthCare Pro", email: process.env.BREVO_SENDER_EMAIL },
+      to: [{ email }],
+      subject: "Your OTP for HealthCare Pro Registration",
+      htmlContent: `
+        <div style="font-family:sans-serif;max-width:400px;margin:auto;padding:24px;border:1px solid #e5e7eb;border-radius:12px">
+          <h2 style="color:#2563eb">HealthCare Pro</h2>
+          <p>Your OTP for registration is:</p>
+          <h1 style="letter-spacing:8px;color:#1d4ed8">${otp}</h1>
+          <p style="color:#6b7280;font-size:13px">This OTP expires in 10 minutes. Do not share it with anyone.</p>
+        </div>`,
+    }),
   });
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo error: ${err}`);
+  }
 }
 
 export async function POST(req: Request) {

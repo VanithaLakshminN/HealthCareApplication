@@ -149,7 +149,7 @@ export default function LandingPage() {
       </section>
 
       <footer className="border-t border-zinc-800 px-6 py-8 text-center text-zinc-500 text-sm">
-        © 2025 HealthCare Pro. All rights reserved.
+        © 2026 HealthCare Pro. All rights reserved.
       </footer>
     </div>
   );

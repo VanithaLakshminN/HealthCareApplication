@@ -24,7 +24,7 @@ export default function AppointmentsPage() {
     fetch("/api/hospitals")
       .then(r => r.json())
       .then(d => {
-        console.log("hospitals response:", d);
+        console.log("hospitals response:", JSON.stringify(d).slice(0, 200));
         setHospitals(d.hospitals || []);
         setLoadingHospitals(false);
       })
