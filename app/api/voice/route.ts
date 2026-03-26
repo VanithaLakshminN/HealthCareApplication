@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   // 1. Transcribe speech
   const { text } = await openai.audio.transcriptions.create({
     file,
-    model: "gpt-4o-mini-transcribe",
+    model: "whisper-1",
   });
 
   // 2. Chat response in Hindi (short answer)

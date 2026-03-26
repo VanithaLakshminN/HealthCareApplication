@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 
 export default function VoiceAgent() {
   const [recording, setRecording] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [messages, setMessages] = useState<{ role: "user" | "agent"; text: string }[]>([]);
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const chunks = useRef<Blob[]>([]);
@@ -18,21 +19,33 @@ export default function VoiceAgent() {
     mediaRecorder.current.ondataavailable = (e) => chunks.current.push(e.data);
 
     mediaRecorder.current.onstop = async () => {
-      const blob = new Blob(chunks.current, { type: "audio/webm" });
-      const formData = new FormData();
-      formData.append("file", blob, "voice.webm");
+      setLoading(true);
+      try {
+        const blob = new Blob(chunks.current, { type: "audio/webm" });
+        const formData = new FormData();
+        formData.append("file", blob, "voice.webm");
 
-      const res = await fetch("/api/voice", { method: "POST", body: formData });
-      const audioBlob = await res.blob();
-      const textReply = decodeURIComponent(res.headers.get("X-Reply") || "");
+        const res = await fetch("/api/voice", { method: "POST", body: formData });
 
-      // show user message + agent reply
-      setMessages((m) => [...m, { role: "user", text: "🎤 Voice message" }]);
-      setMessages((m) => [...m, { role: "agent", text: textReply }]);
+        if (!res.ok) {
+          const err = await res.text();
+          setMessages((m) => [...m, { role: "agent", text: `Error: ${err}` }]);
+          return;
+        }
 
-      // play TTS response
-      const url = URL.createObjectURL(audioBlob);
-      new Audio(url).play();
+        const textReply = decodeURIComponent(res.headers.get("X-Reply") || "");
+        const audioBlob = await res.blob();
+
+        setMessages((m) => [...m, { role: "user", text: "🎤 Voice message" }]);
+        setMessages((m) => [...m, { role: "agent", text: textReply || "No reply received" }]);
+
+        const url = URL.createObjectURL(audioBlob);
+        new Audio(url).play();
+      } catch (e) {
+        setMessages((m) => [...m, { role: "agent", text: `Failed: ${String(e)}` }]);
+      } finally {
+        setLoading(false);
+      }
     };
 
     mediaRecorder.current.start();
@@ -66,10 +79,12 @@ export default function VoiceAgent() {
         </div>
 
         {/* Mic Button */}
-        <div className="p-4 border-t border-zinc-800 flex justify-center">
+        <div className="p-4 border-t border-zinc-800 flex flex-col items-center gap-2">
+          {loading && <p className="text-xs text-zinc-400 animate-pulse">Processing...</p>}
           <motion.button
             onClick={recording ? stopRecording : startRecording}
-            className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-lg"
+            disabled={loading}
+            className="w-16 h-16 flex items-center justify-center rounded-full bg-blue-600 text-white shadow-lg disabled:opacity-50"
             animate={recording ? { scale: [1, 1.2, 1] } : {}}
             transition={recording ? { repeat: Infinity, duration: 1.2 } : {}}
           >
