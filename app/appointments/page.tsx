@@ -1,12 +1,13 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, MapPin, Phone, Star, Clock, ChevronDown, ChevronUp, Calendar, Ambulance, CheckCircle } from "lucide-react";
+import { MapPin, Phone, Star, Clock, ChevronDown, ChevronUp, Calendar, Ambulance, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import Link from "next/link";
 
 type Doctor = { name: string; specialty: string; experience: number; rating: number; consultationFee: number; availableSlots: string[] };
 type Hospital = { _id: string; name: string; address: string; phone: string; ambulanceNumber: string; rating: number; totalBeds: number; availableBeds: number; isOpen: boolean; openHours: string; specializations: string[]; doctors: Doctor[] };
+
+import { Navbar } from "@/components/navbar";
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -51,14 +52,7 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/home" className="flex items-center gap-2">
-          <div className="bg-blue-600 rounded-lg p-1.5"><Heart className="w-5 h-5 text-white" /></div>
-          <span className="font-bold">HealthCare Pro</span>
-        </Link>
-        <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-white transition-colors">← Dashboard</Link>
-      </div>
-
+      <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-2">Book Appointment</h1>
         <p className="text-zinc-400 text-sm mb-6">Choose from our 6 partner hospitals and book a slot with your preferred doctor.</p>

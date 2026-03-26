@@ -1,10 +1,11 @@
 "use client";
 import { useState, useEffect } from "react";
-import { Heart, MapPin, Phone, Clock, Star, Search, CheckCircle, XCircle } from "lucide-react";
-import Link from "next/link";
+import { MapPin, Phone, Clock, Star, Search, CheckCircle, XCircle } from "lucide-react";
 
 type Medicine = { name: string; category: string; inStock: boolean; price: number };
 type Pharmacy = { _id: string; name: string; address: string; phone: string; nearbyHospital: string; isOpen: boolean; openHours: string; rating: number; medicines: Medicine[]; location: { lat: number; lng: number } };
+
+import { Navbar } from "@/components/navbar";
 
 export default function PharmacyPage() {
   const [pharmacies, setPharmacies] = useState<Pharmacy[]>([]);
@@ -27,14 +28,7 @@ export default function PharmacyPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/home" className="flex items-center gap-2">
-          <div className="bg-blue-600 rounded-lg p-1.5"><Heart className="w-5 h-5 text-white" /></div>
-          <span className="font-bold">HealthCare Pro</span>
-        </Link>
-        <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-white transition-colors">← Dashboard</Link>
-      </div>
-
+      <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-2">Nearby Pharmacies</h1>
         <p className="text-zinc-400 text-sm mb-6">Pharmacies near our partner hospitals with medicine availability.</p>
