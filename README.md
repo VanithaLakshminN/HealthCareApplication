@@ -67,17 +67,28 @@ npm start
 └── public/               # Static assets
 ```
 
-## Environment Variables
+### Environment Variables
 
-Create a `.env.local` file in the root and add your keys:
+Create a `.env.local` file:
 
 ```env
-OPENAI_API_KEY=your_openai_api_key
+# MongoDB
+MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/healthcare?retryWrites=true&w=majority
+
+# JWT
+JWT_SECRET=your_random_secret_here
+
+# Brevo (email OTP)
+BREVO_API_KEY=your_brevo_api_key
+BREVO_SENDER_EMAIL=your_verified_email@gmail.com
+
+# Groq (AI chat + voice)
+GROQ_API_KEY=your_groq_api_key
+
+# Sarvam AI (Indian language TTS)
+SARVAM_API_KEY=your_sarvam_api_key
+
 ```
-
-## Deployment
-
-Hosted on [Netlify](https://www.netlify.com/) at [https://healthcare601.netlify.app](https://healthcare601.netlify.app).
 
 ## Author
 
