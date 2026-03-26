@@ -32,21 +32,10 @@ export default function LandingPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 bg-zinc-950/90 backdrop-blur border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
-        <Link href="/home" className="flex items-center gap-2">
-          <div className="bg-blue-600 rounded-lg p-1.5"><Heart className="w-5 h-5 text-white" /></div>
-          <span className="font-bold text-lg">HealthCare Pro</span>
-        </Link>
-        <div className="hidden md:flex items-center gap-6 text-sm text-zinc-400">
-          <a href="#services" className="hover:text-white transition-colors">Services</a>
-          <a href="#about" className="hover:text-white transition-colors">About</a>
-          <a href="#contact" className="hover:text-white transition-colors">Contact</a>
-        </div>
-        <Link href="/dashboard" className="px-4 py-2 bg-blue-600 hover:bg-blue-500 rounded-xl text-sm font-medium transition-colors">
-          Dashboard
-        </Link>
-      </nav>
+      {/* Nav — hidden since global Navbar handles it, keeping anchor links only */}
+      <div className="hidden">
+        <nav></nav>
+      </div>
 
       {/* Hero */}
       <section className="px-6 py-24 text-center max-w-4xl mx-auto">

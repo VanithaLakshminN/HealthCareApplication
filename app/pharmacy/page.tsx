@@ -28,7 +28,6 @@ export default function PharmacyPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-2">Nearby Pharmacies</h1>
         <p className="text-zinc-400 text-sm mb-6">Pharmacies near our partner hospitals with medicine availability.</p>

@@ -15,6 +15,9 @@ export function Navbar() {
 
   const links = [
     { href: "/home", label: "Home", icon: Home },
+    { href: "/home#services", label: "Services", icon: null },
+    { href: "/home#about", label: "About", icon: null },
+    { href: "/home#contact", label: "Contact", icon: null },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/appointments", label: "Appointments", icon: Calendar },
     { href: "/pharmacy", label: "Pharmacy", icon: Pill },
@@ -35,7 +38,7 @@ export function Navbar() {
           {links.map(l => (
             <Link key={l.href} href={l.href}
               className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 transition-colors">
-              <l.icon className="w-4 h-4" />{l.label}
+              {l.icon && <l.icon className="w-4 h-4" />}{l.label}
             </Link>
           ))}
         </div>
@@ -57,7 +60,7 @@ export function Navbar() {
           {links.map(l => (
             <Link key={l.href} href={l.href} onClick={() => setOpen(false)}
               className="flex items-center gap-2 px-4 py-2.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-colors">
-              <l.icon className="w-4 h-4" />{l.label}
+              {l.icon && <l.icon className="w-4 h-4" />}{l.label}
             </Link>
           ))}
           <button onClick={logout} className="w-full flex items-center gap-2 px-4 py-2.5 text-sm text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-xl transition-colors">

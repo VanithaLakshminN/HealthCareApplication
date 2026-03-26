@@ -52,7 +52,6 @@ export default function AppointmentsPage() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <Navbar />
       <div className="max-w-4xl mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-2">Book Appointment</h1>
         <p className="text-zinc-400 text-sm mb-6">Choose from our 6 partner hospitals and book a slot with your preferred doctor.</p>

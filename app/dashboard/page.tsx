@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import { FileText, Calendar, Pill, Upload, Trash2, Heart, Plus, X, Eye } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
-import { Navbar } from "@/components/navbar";
 
 type Tab = "overview" | "records" | "prescriptions";
 type MedRecord = { _id: string; type: string; title: string; doctor: string; hospital: string; date: string; notes: string; fileUrl?: string; fileName?: string };
@@ -67,8 +66,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      <Navbar />
-
       <div className="max-w-5xl mx-auto px-4 py-8">
 
         {/* Profile banner */}
