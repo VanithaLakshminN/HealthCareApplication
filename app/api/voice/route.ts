@@ -1,8 +1,7 @@
 import OpenAI from "openai";
 
 const openai = new OpenAI({
-  apiKey: "sk-e2Fd4IckiQUA9jvxXvqwJw",
-  baseURL: "https://api.znapai.com/",
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(req: Request) {

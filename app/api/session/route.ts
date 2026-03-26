@@ -5,8 +5,7 @@ export async function GET() {
   const r = await fetch("https://api.openai.com/v1/realtime/sessions", {
     method: "POST",
     headers: {
-      "Authorization": `Bearer sk-e2Fd4IckiQUA9jvxXvqwJw`,
-    //   "baseURL": "https://api.znapai.com/",
+      "Authorization": `Bearer ${process.env.OPENAI_API_KEY}`,
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
