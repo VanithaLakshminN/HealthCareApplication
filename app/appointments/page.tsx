@@ -1,303 +1,194 @@
 "use client";
-
-import { useState, useEffect, useCallback } from "react";
-import { MapPin, Star, Navigation, Phone, ExternalLink, Clock, RefreshCw, AlertCircle } from "lucide-react";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { Heart, MapPin, Phone, Star, Clock, ChevronDown, ChevronUp, Calendar, Ambulance, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import Link from "next/link";
 
-type Hospital = {
-  id: string;
-  name: string;
-  address: string;
-  rating: number | null;
-  totalRatings: number;
-  openNow: boolean;
-  location: { lat: number; lng: number };
-  photo: string | null;
-};
-
-type UserLocation = { lat: number; lng: number };
-
-const RADIUS_OPTIONS = [
-  { label: "1 km", value: "1000" },
-  { label: "3 km", value: "3000" },
-  { label: "5 km", value: "5000" },
-  { label: "10 km", value: "10000" },
-];
-
-function StarRating({ rating }: { rating: number }) {
-  return (
-    <div className="flex items-center gap-1">
-      {[1, 2, 3, 4, 5].map((s) => (
-        <Star
-          key={s}
-          className={`w-3.5 h-3.5 ${s <= Math.round(rating) ? "text-yellow-400 fill-yellow-400" : "text-zinc-600"}`}
-        />
-      ))}
-      <span className="text-sm text-zinc-300 ml-1">{rating.toFixed(1)}</span>
-    </div>
-  );
-}
-
-function getDirectionsUrl(userLoc: UserLocation, hospital: Hospital) {
-  return `https://www.google.com/maps/dir/${userLoc.lat},${userLoc.lng}/${hospital.location.lat},${hospital.location.lng}`;
-}
-
-function getMapsUrl(hospital: Hospital) {
-  return `https://www.google.com/maps/place/?q=place_id:${hospital.id}`;
-}
-
-function distanceKm(a: UserLocation, b: { lat: number; lng: number }) {
-  const R = 6371;
-  const dLat = ((b.lat - a.lat) * Math.PI) / 180;
-  const dLng = ((b.lng - a.lng) * Math.PI) / 180;
-  const x =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((a.lat * Math.PI) / 180) * Math.cos((b.lat * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return (R * 2 * Math.atan2(Math.sqrt(x), Math.sqrt(1 - x))).toFixed(1);
-}
+type Doctor = { name: string; specialty: string; experience: number; rating: number; consultationFee: number; availableSlots: string[] };
+type Hospital = { _id: string; name: string; address: string; phone: string; ambulanceNumber: string; rating: number; totalBeds: number; availableBeds: number; isOpen: boolean; openHours: string; specializations: string[]; doctors: Doctor[] };
 
 export default function AppointmentsPage() {
-  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const router = useRouter();
   const [hospitals, setHospitals] = useState<Hospital[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [locError, setLocError] = useState<string | null>(null);
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [radius, setRadius] = useState("5000");
-  const [sortBy, setSortBy] = useState<"rating" | "distance">("rating");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<{ hospitalId: string; doctor: Doctor } | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [type, setType] = useState<"in-person" | "video">("in-person");
+  const [booking, setBooking] = useState(false);
+  const [booked, setBooked] = useState(false);
+  const [filterSpec, setFilterSpec] = useState("");
 
-  const fetchHospitals = useCallback(async (loc: UserLocation, r: string) => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      const res = await fetch(`/api/hospitals?lat=${loc.lat}&lng=${loc.lng}&radius=${r}`);
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error);
-      setHospitals(data.hospitals);
-    } catch (e: any) {
-      setApiError(e.message || "Failed to fetch hospitals");
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    fetch("/api/hospitals").then(r => r.json()).then(d => setHospitals(d.hospitals || []));
   }, []);
 
-  const getLocation = useCallback(() => {
-    setLocError(null);
-    setHospitals([]);
-    if (!navigator.geolocation) {
-      setLocError("Geolocation is not supported by your browser.");
-      return;
-    }
-    setLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const loc = { lat: pos.coords.latitude, lng: pos.coords.longitude };
-        setUserLocation(loc);
-        fetchHospitals(loc, radius);
-      },
-      (err) => {
-        setLoading(false);
-        setLocError(
-          err.code === 1
-            ? "Location access denied. Please allow location permission and try again."
-            : "Unable to get your location. Please try again."
-        );
-      },
-      { enableHighAccuracy: true, timeout: 10000 }
-    );
-  }, [radius, fetchHospitals]);
+  const allSpecs = [...new Set(hospitals.flatMap(h => h.specializations))].sort();
 
-  // Re-fetch when radius changes and we already have location
-  useEffect(() => {
-    if (userLocation) fetchHospitals(userLocation, radius);
-  }, [radius]);
+  const filtered = filterSpec
+    ? hospitals.filter(h => h.specializations.includes(filterSpec) || h.doctors.some(d => d.specialty === filterSpec))
+    : hospitals;
 
-  const sorted = [...hospitals].sort((a, b) => {
-    if (sortBy === "rating") return (b.rating ?? 0) - (a.rating ?? 0);
-    if (!userLocation) return 0;
-    return (
-      parseFloat(distanceKm(userLocation, a.location)) -
-      parseFloat(distanceKm(userLocation, b.location))
-    );
-  });
+  const confirmBooking = async () => {
+    if (!selectedDoctor || !selectedSlot) return;
+    setBooking(true);
+    const hospital = hospitals.find(h => h._id === selectedDoctor.hospitalId)!;
+    await fetch("/api/appointments", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        hospitalId: selectedDoctor.hospitalId,
+        hospitalName: hospital.name,
+        doctorName: selectedDoctor.doctor.name,
+        doctorSpecialty: selectedDoctor.doctor.specialty,
+        date, slot: selectedSlot, type,
+      }),
+    });
+    setBooking(false); setBooked(true);
+    setTimeout(() => { setBooked(false); setSelectedDoctor(null); setSelectedSlot(null); }, 3000);
+  };
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
-      {/* Header */}
-      <div className="bg-zinc-900 border-b border-zinc-800 px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-1">Nearby Hospitals</h1>
-          <p className="text-zinc-400 text-sm">Find open hospitals near you with ratings and directions</p>
-        </div>
+      <div className="bg-zinc-900 border-b border-zinc-800 px-6 py-4 flex items-center justify-between">
+        <Link href="/home" className="flex items-center gap-2">
+          <div className="bg-blue-600 rounded-lg p-1.5"><Heart className="w-5 h-5 text-white" /></div>
+          <span className="font-bold">HealthCare Pro</span>
+        </Link>
+        <Link href="/dashboard" className="text-sm text-zinc-400 hover:text-white transition-colors">← Dashboard</Link>
       </div>
 
-      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+      <div className="max-w-4xl mx-auto px-4 py-8">
+        <h1 className="text-2xl font-bold mb-2">Book Appointment</h1>
+        <p className="text-zinc-400 text-sm mb-6">Choose from our 6 partner hospitals and book a slot with your preferred doctor.</p>
 
-        {/* Controls */}
-        <div className="flex flex-wrap gap-3 items-center">
-          <button
-            onClick={getLocation}
-            disabled={loading}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl text-sm font-medium transition-colors"
-          >
-            <Navigation className="w-4 h-4" />
-            {userLocation ? "Refresh Location" : "Use My Location"}
-          </button>
-
-          {/* Radius */}
-          <div className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1">
-            {RADIUS_OPTIONS.map((r) => (
-              <button
-                key={r.value}
-                onClick={() => setRadius(r.value)}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  radius === r.value ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                {r.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Sort */}
-          {hospitals.length > 0 && (
-            <div className="flex items-center gap-1 bg-zinc-800 rounded-xl p-1 ml-auto">
-              <button
-                onClick={() => setSortBy("rating")}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  sortBy === "rating" ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Top Rated
-              </button>
-              <button
-                onClick={() => setSortBy("distance")}
-                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
-                  sortBy === "distance" ? "bg-blue-600 text-white" : "text-zinc-400 hover:text-white"
-                }`}
-              >
-                Nearest
-              </button>
-            </div>
-          )}
+        {/* Filter */}
+        <div className="flex flex-wrap gap-2 mb-6">
+          <button onClick={() => setFilterSpec("")} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${!filterSpec ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-400 hover:text-white"}`}>All</button>
+          {allSpecs.map(s => (
+            <button key={s} onClick={() => setFilterSpec(s)} className={`px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${filterSpec === s ? "bg-blue-600 text-white" : "bg-zinc-800 text-zinc-400 hover:text-white"}`}>{s}</button>
+          ))}
         </div>
 
-        {/* User location badge */}
-        {userLocation && (
-          <div className="flex items-center gap-2 text-xs text-zinc-400">
-            <MapPin className="w-3.5 h-3.5 text-blue-400" />
-            Your location: {userLocation.lat.toFixed(4)}, {userLocation.lng.toFixed(4)}
-          </div>
-        )}
-
-        {/* Errors */}
-        {(locError || apiError) && (
-          <div className="flex items-start gap-3 p-4 bg-red-950 border border-red-800 rounded-xl text-sm text-red-300">
-            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-            {locError || apiError}
-          </div>
-        )}
-
-        {/* Loading */}
-        {loading && (
-          <div className="flex items-center justify-center py-16 gap-3 text-zinc-400">
-            <RefreshCw className="w-5 h-5 animate-spin" />
-            {userLocation ? "Finding nearby hospitals..." : "Getting your location..."}
-          </div>
-        )}
-
-        {/* Empty state */}
-        {!loading && userLocation && hospitals.length === 0 && !apiError && (
-          <div className="text-center py-16 text-zinc-500">
-            <MapPin className="w-10 h-10 mx-auto mb-3 opacity-30" />
-            <p>No open hospitals found within {parseInt(radius) / 1000} km.</p>
-            <p className="text-sm mt-1">Try increasing the search radius.</p>
-          </div>
-        )}
-
-        {/* Initial state */}
-        {!loading && !userLocation && !locError && (
-          <div className="text-center py-20 text-zinc-500">
-            <Navigation className="w-12 h-12 mx-auto mb-4 opacity-20" />
-            <p className="text-lg">Click "Use My Location" to find hospitals near you</p>
-            <p className="text-sm mt-2">We'll show only hospitals that are currently open</p>
-          </div>
-        )}
-
-        {/* Hospital cards */}
-        <AnimatePresence>
-          {sorted.map((hospital, i) => (
-            <motion.div
-              key={hospital.id}
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.05 }}
-              className="bg-zinc-900 border border-zinc-800 rounded-2xl p-5 hover:border-zinc-600 transition-colors"
-            >
-              <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  {/* Name + open badge */}
-                  <div className="flex items-center gap-2 flex-wrap mb-1">
-                    <h2 className="font-semibold text-lg leading-tight">{hospital.name}</h2>
-                    <span className="text-xs px-2 py-0.5 rounded-full bg-green-900 text-green-400 border border-green-800 flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Open Now
-                    </span>
-                  </div>
-
-                  {/* Address */}
-                  <p className="text-sm text-zinc-400 flex items-start gap-1 mb-3">
-                    <MapPin className="w-3.5 h-3.5 mt-0.5 shrink-0 text-zinc-500" />
-                    {hospital.address}
-                  </p>
-
-                  {/* Rating + distance */}
-                  <div className="flex items-center gap-4 flex-wrap">
-                    {hospital.rating !== null ? (
-                      <div className="flex flex-col gap-0.5">
-                        <StarRating rating={hospital.rating} />
-                        <span className="text-xs text-zinc-500">{hospital.totalRatings.toLocaleString()} reviews</span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-zinc-500">No ratings yet</span>
-                    )}
-
-                    {userLocation && (
-                      <span className="text-xs text-zinc-400 flex items-center gap-1">
-                        <Navigation className="w-3 h-3" />
-                        {distanceKm(userLocation, hospital.location)} km away
+        {/* Hospital list */}
+        <div className="space-y-4">
+          {filtered.map(hospital => (
+            <div key={hospital._id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
+              {/* Hospital header */}
+              <div className="p-5 cursor-pointer" onClick={() => setExpanded(expanded === hospital._id ? null : hospital._id)}>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 flex-wrap mb-1">
+                      <h2 className="font-bold text-lg">{hospital.name}</h2>
+                      <span className={`text-xs px-2 py-0.5 rounded-full border ${hospital.isOpen ? "bg-green-900 text-green-400 border-green-800" : "bg-red-900 text-red-400 border-red-800"}`}>
+                        {hospital.isOpen ? "Open" : "Closed"}
                       </span>
-                    )}
+                    </div>
+                    <p className="text-zinc-400 text-sm flex items-center gap-1"><MapPin className="w-3.5 h-3.5" />{hospital.address}</p>
+                    <div className="flex items-center gap-4 mt-2 flex-wrap text-sm">
+                      <span className="flex items-center gap-1 text-yellow-400"><Star className="w-3.5 h-3.5 fill-yellow-400" />{hospital.rating}</span>
+                      <span className="text-zinc-400 flex items-center gap-1"><Clock className="w-3.5 h-3.5" />{hospital.openHours}</span>
+                      <span className="text-zinc-400">🛏 {hospital.availableBeds}/{hospital.totalBeds} beds</span>
+                    </div>
+                    <div className="flex flex-wrap gap-1 mt-2">
+                      {hospital.specializations.map(s => <span key={s} className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">{s}</span>)}
+                    </div>
                   </div>
-                </div>
-
-                {/* Actions */}
-                <div className="flex flex-col gap-2 shrink-0">
-                  {userLocation && (
-                    <a
-                      href={getDirectionsUrl(userLocation, hospital)}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-500 rounded-lg text-xs font-medium transition-colors"
-                    >
-                      <Navigation className="w-3.5 h-3.5" />
-                      Directions
+                  <div className="flex flex-col items-end gap-2 shrink-0">
+                    <a href={`tel:${hospital.ambulanceNumber}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 px-3 py-1.5 bg-red-700 hover:bg-red-600 rounded-xl text-xs font-medium transition-colors">
+                      <Ambulance className="w-3.5 h-3.5" /> Ambulance
                     </a>
-                  )}
-                  <a
-                    href={getMapsUrl(hospital)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    <ExternalLink className="w-3.5 h-3.5" />
-                    View on Maps
-                  </a>
+                    <a href={`tel:${hospital.phone}`} onClick={e => e.stopPropagation()} className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl text-xs transition-colors">
+                      <Phone className="w-3.5 h-3.5" /> {hospital.phone}
+                    </a>
+                    {expanded === hospital._id ? <ChevronUp className="w-4 h-4 text-zinc-500 mt-1" /> : <ChevronDown className="w-4 h-4 text-zinc-500 mt-1" />}
+                  </div>
                 </div>
               </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
 
+              {/* Doctors */}
+              <AnimatePresence>
+                {expanded === hospital._id && (
+                  <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-zinc-800 overflow-hidden">
+                    <div className="p-5 space-y-4">
+                      <h3 className="font-semibold text-zinc-300 text-sm">Available Doctors</h3>
+                      {hospital.doctors.map((doc, i) => (
+                        <div key={i} className={`border rounded-xl p-4 transition-colors cursor-pointer ${selectedDoctor?.doctor.name === doc.name && selectedDoctor.hospitalId === hospital._id ? "border-blue-500 bg-blue-950/30" : "border-zinc-700 hover:border-zinc-500"}`}
+                          onClick={() => { setSelectedDoctor({ hospitalId: hospital._id, doctor: doc }); setSelectedSlot(null); }}>
+                          <div className="flex items-start justify-between gap-4">
+                            <div>
+                              <p className="font-semibold">{doc.name}</p>
+                              <p className="text-zinc-400 text-sm">{doc.specialty} · {doc.experience} yrs exp</p>
+                              <div className="flex items-center gap-3 mt-1 text-sm">
+                                <span className="flex items-center gap-1 text-yellow-400"><Star className="w-3 h-3 fill-yellow-400" />{doc.rating}</span>
+                                <span className="text-green-400">₹{doc.consultationFee}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Slots */}
+                          {selectedDoctor?.doctor.name === doc.name && selectedDoctor.hospitalId === hospital._id && (
+                            <div className="mt-4">
+                              <p className="text-xs text-zinc-400 mb-2">Select a slot:</p>
+                              <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                                {doc.availableSlots.map(slot => (
+                                  <button key={slot} onClick={e => { e.stopPropagation(); setSelectedSlot(slot); }}
+                                    className={`px-3 py-1 rounded-lg text-xs border transition-colors ${selectedSlot === slot ? "bg-blue-600 border-blue-600 text-white" : "border-zinc-600 text-zinc-300 hover:border-blue-500"}`}>
+                                    {slot}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
+          ))}
+        </div>
       </div>
+
+      {/* Booking panel */}
+      <AnimatePresence>
+        {selectedDoctor && selectedSlot && (
+          <motion.div initial={{ y: 100, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 100, opacity: 0 }}
+            className="fixed bottom-0 left-0 right-0 bg-zinc-900 border-t border-zinc-800 p-4 z-50">
+            <div className="max-w-4xl mx-auto flex flex-wrap items-center gap-4 justify-between">
+              <div>
+                <p className="font-semibold">{selectedDoctor.doctor.name} · {selectedSlot}</p>
+                <p className="text-zinc-400 text-sm">{hospitals.find(h => h._id === selectedDoctor.hospitalId)?.name}</p>
+              </div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <input type="date" value={date} onChange={e => setDate(e.target.value)} min={new Date().toISOString().split("T")[0]}
+                  className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-sm text-white outline-none" />
+                <div className="flex bg-zinc-800 rounded-xl p-1">
+                  {(["in-person", "video"] as const).map(t => (
+                    <button key={t} onClick={() => setType(t)} className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${type === t ? "bg-blue-600 text-white" : "text-zinc-400"}`}>{t}</button>
+                  ))}
+                </div>
+                <button onClick={confirmBooking} disabled={booking}
+                  className="flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 rounded-xl font-semibold text-sm transition-colors">
+                  <Calendar className="w-4 h-4" /> {booking ? "Booking..." : "Confirm"}
+                </button>
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Success toast */}
+      <AnimatePresence>
+        {booked && (
+          <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
+            className="fixed top-6 right-6 bg-green-900 border border-green-700 text-green-300 px-5 py-3 rounded-xl flex items-center gap-2 z-50 shadow-xl">
+            <CheckCircle className="w-5 h-5" /> Appointment booked successfully!
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
