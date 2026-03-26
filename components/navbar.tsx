@@ -15,9 +15,6 @@ export function Navbar() {
 
   const links = [
     { href: "/home", label: "Home", icon: Home },
-    { href: "/home#services", label: "Services", icon: null },
-    { href: "/home#about", label: "About", icon: null },
-    { href: "/home#contact", label: "Contact", icon: null },
     { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     { href: "/appointments", label: "Appointments", icon: Calendar },
     { href: "/pharmacy", label: "Pharmacy", icon: Pill },
