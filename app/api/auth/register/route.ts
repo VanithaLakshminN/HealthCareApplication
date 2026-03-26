@@ -1,20 +1,18 @@
 import { connectDB } from "@/lib/mongodb";
 import { User } from "@/models/User";
 import bcrypt from "bcryptjs";
-import nodemailer from "nodemailer";
+import { Resend } from "resend";
 import { NextResponse } from "next/server";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 function generateOTP() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
 async function sendOTPEmail(email: string, otp: string) {
-  const transporter = nodemailer.createTransport({
-    service: "gmail",
-    auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
-  });
-  await transporter.sendMail({
-    from: `"HealthCare Pro" <${process.env.EMAIL_USER}>`,
+  await resend.emails.send({
+    from: "HealthCare Pro <onboarding@resend.dev>",
     to: email,
     subject: "Your OTP for HealthCare Pro Registration",
     html: `
@@ -53,6 +51,7 @@ export async function POST(req: Request) {
       await User.create({ name, email, password: hashed, otp, otpExpiry });
     }
 
+    console.log(`[OTP for ${email}]: ${otp}`); // visible in terminal
     await sendOTPEmail(email, otp);
     return NextResponse.json({ message: "OTP sent to your email" });
   } catch (e: any) {
