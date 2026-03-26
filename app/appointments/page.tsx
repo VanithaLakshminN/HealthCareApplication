@@ -4,10 +4,8 @@ import { useRouter } from "next/navigation";
 import { MapPin, Phone, Star, Clock, ChevronDown, ChevronUp, Calendar, Ambulance, CheckCircle } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
-type Doctor = { name: string; specialty: string; experience: number; rating: number; consultationFee: number; availableSlots: string[] };
+type Doctor = { name: string; specialty: string; experience: number; rating: number; consultationFee: number; availableSlots: string[]; _id: string };
 type Hospital = { _id: string; name: string; address: string; phone: string; ambulanceNumber: string; rating: number; totalBeds: number; availableBeds: number; isOpen: boolean; openHours: string; specializations: string[]; doctors: Doctor[] };
-
-import { Navbar } from "@/components/navbar";
 
 export default function AppointmentsPage() {
   const router = useRouter();
@@ -20,9 +18,12 @@ export default function AppointmentsPage() {
   const [booking, setBooking] = useState(false);
   const [booked, setBooked] = useState(false);
   const [filterSpec, setFilterSpec] = useState("");
+  const [loadingHospitals, setLoadingHospitals] = useState(true);
 
   useEffect(() => {
-    fetch("/api/hospitals").then(r => r.json()).then(d => setHospitals(d.hospitals || []));
+    fetch("/api/hospitals")
+      .then(r => r.json())
+      .then(d => { setHospitals(d.hospitals || []); setLoadingHospitals(false); });
   }, []);
 
   const allSpecs = [...new Set(hospitals.flatMap(h => h.specializations))].sort();
@@ -66,7 +67,11 @@ export default function AppointmentsPage() {
 
         {/* Hospital list */}
         <div className="space-y-4">
-          {filtered.map(hospital => (
+          {loadingHospitals ? (
+            <div className="text-center py-16 text-zinc-400">Loading hospitals...</div>
+          ) : filtered.length === 0 ? (
+            <div className="text-center py-16 text-zinc-500">No hospitals found.</div>
+          ) : filtered.map(hospital => (
             <div key={hospital._id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
               {/* Hospital header */}
               <div className="p-5 cursor-pointer" onClick={() => setExpanded(expanded === hospital._id ? null : hospital._id)}>
