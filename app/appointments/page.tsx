@@ -23,7 +23,15 @@ export default function AppointmentsPage() {
   useEffect(() => {
     fetch("/api/hospitals")
       .then(r => r.json())
-      .then(d => { setHospitals(d.hospitals || []); setLoadingHospitals(false); });
+      .then(d => {
+        console.log("hospitals response:", d);
+        setHospitals(d.hospitals || []);
+        setLoadingHospitals(false);
+      })
+      .catch(e => {
+        console.error("hospitals fetch error:", e);
+        setLoadingHospitals(false);
+      });
   }, []);
 
   const allSpecs = [...new Set(hospitals.flatMap(h => h.specializations))].sort();
@@ -69,8 +77,10 @@ export default function AppointmentsPage() {
         <div className="space-y-4">
           {loadingHospitals ? (
             <div className="text-center py-16 text-zinc-400">Loading hospitals...</div>
+          ) : filtered.length === 0 && hospitals.length === 0 ? (
+            <div className="text-center py-16 text-zinc-500">No hospitals found. Please try again.</div>
           ) : filtered.length === 0 ? (
-            <div className="text-center py-16 text-zinc-500">No hospitals found.</div>
+            <div className="text-center py-16 text-zinc-500">No hospitals match this filter.</div>
           ) : filtered.map(hospital => (
             <div key={hospital._id} className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
               {/* Hospital header */}
