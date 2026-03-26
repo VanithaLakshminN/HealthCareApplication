@@ -85,7 +85,7 @@ export default function AppointmentsPage() {
                       <span className="text-zinc-400">🛏 {hospital.availableBeds}/{hospital.totalBeds} beds</span>
                     </div>
                     <div className="flex flex-wrap gap-1 mt-2">
-                      {hospital.specializations.map(s => <span key={s} className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">{s}</span>)}
+                      {(hospital.specializations || []).map(s => <span key={s} className="text-xs bg-zinc-800 text-zinc-300 px-2 py-0.5 rounded-full">{s}</span>)}
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-2 shrink-0">
@@ -106,7 +106,7 @@ export default function AppointmentsPage() {
                   <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="border-t border-zinc-800 overflow-hidden">
                     <div className="p-5 space-y-4">
                       <h3 className="font-semibold text-zinc-300 text-sm">Available Doctors</h3>
-                      {hospital.doctors.map((doc, i) => (
+                      {(hospital.doctors || []).map((doc, i) => (
                         <div key={i} className={`border rounded-xl p-4 transition-colors cursor-pointer ${selectedDoctor?.doctor.name === doc.name && selectedDoctor.hospitalId === hospital._id ? "border-blue-500 bg-blue-950/30" : "border-zinc-700 hover:border-zinc-500"}`}
                           onClick={() => { setSelectedDoctor({ hospitalId: hospital._id, doctor: doc }); setSelectedSlot(null); }}>
                           <div className="flex items-start justify-between gap-4">
@@ -125,7 +125,7 @@ export default function AppointmentsPage() {
                             <div className="mt-4">
                               <p className="text-xs text-zinc-400 mb-2">Select a slot:</p>
                               <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
-                                {doc.availableSlots.map(slot => (
+                                {(doc.availableSlots || []).map(slot => (
                                   <button key={slot} onClick={e => { e.stopPropagation(); setSelectedSlot(slot); }}
                                     className={`px-3 py-1 rounded-lg text-xs border transition-colors ${selectedSlot === slot ? "bg-blue-600 border-blue-600 text-white" : "border-zinc-600 text-zinc-300 hover:border-blue-500"}`}>
                                     {slot}
