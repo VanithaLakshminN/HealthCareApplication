@@ -2,7 +2,6 @@
 
 Your Digital Health Partner — a Next.js web app for managing healthcare needs in one place.
 
-Live: [https://healthcare601.netlify.app](https://healthcare601.netlify.app)
 
 ## Features
 
