@@ -96,9 +96,5 @@ SARVAM_API_KEY=your_sarvam_api_key
 
 - 🎓 B.E. CSE (2022–2026)
 - 📍 Bengaluru, India
-- 💼 Data Analytics Intern @ Rooman Technologies
-- 💼 Software Development Intern @ TAP Academy
-- 💻 Interested in Machine Learning & Software Development
-- 📧 [vanithalakshmin354@gmail.com](mailto:vanithalakshmin354@gmail.com)
 - 🔗 [LinkedIn](https://www.linkedin.com/in/vanitha-lakshmi-n)
-- 🐙 [GitHub](https://github.com/VanithaLakshmiN)
+
