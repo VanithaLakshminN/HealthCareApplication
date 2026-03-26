@@ -6,11 +6,18 @@ import { motion } from "framer-motion";
 
 type Message = { role: "user" | "agent"; text: string; type?: "voice" | "text" };
 
+const LANGUAGES = [
+  { code: "hi", label: "हिंदी", tts: "hi-IN" },
+  { code: "kn", label: "ಕನ್ನಡ", tts: "kn-IN" },
+  { code: "te", label: "తెలుగు", tts: "te-IN" },
+];
+
 export default function HealthAssistant() {
   const [recording, setRecording] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [lang, setLang] = useState(LANGUAGES[0]);
   const [messages, setMessages] = useState<Message[]>([
-    { role: "agent", text: "Hi! I'm your health assistant. You can type a message or use the mic to speak. I'll reply in the same language you use.", type: "text" },
+    { role: "agent", text: "Hi! I'm your health assistant. Select a language, then type or speak your health question.", type: "text" },
   ]);
   const [inputText, setInputText] = useState("");
   const mediaRecorder = useRef<MediaRecorder | null>(null);
@@ -34,7 +41,7 @@ export default function HealthAssistant() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: msg }),
+        body: JSON.stringify({ message: msg, language: lang.code }),
       });
       const data = await res.json();
       const reply = res.ok ? data.reply : `Error: ${data.error}`;
@@ -66,6 +73,7 @@ export default function HealthAssistant() {
         const blob = new Blob(chunks.current, { type: "audio/webm" });
         const formData = new FormData();
         formData.append("file", blob, "voice.webm");
+        formData.append("language", lang.code);
 
         const res = await fetch("/api/voice", { method: "POST", body: formData });
         const data = await res.json();
@@ -79,7 +87,7 @@ export default function HealthAssistant() {
         setMessages((m) => [...m, { role: "agent", text: data.reply, type: "voice" }]);
 
         const utterance = new SpeechSynthesisUtterance(data.reply);
-        utterance.lang = "hi-IN";
+        utterance.lang = lang.tts;
         window.speechSynthesis.speak(utterance);
       } catch (e) {
         setMessages((m) => [...m, { role: "agent", text: `Failed: ${String(e)}`, type: "voice" }]);
@@ -102,11 +110,30 @@ export default function HealthAssistant() {
       <div className="w-full max-w-lg h-full max-h-[700px] flex flex-col bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl">
 
         {/* Header */}
-        <div className="p-4 border-b border-zinc-800 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-lg">🩺</div>
-          <div>
-            <p className="font-semibold text-sm">Health Assistant</p>
-            <p className="text-xs text-zinc-400">Powered by Groq · Text & Voice</p>
+        <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-lg">🩺</div>
+            <div>
+              <p className="font-semibold text-sm">Health Assistant</p>
+              <p className="text-xs text-zinc-400">Powered by Groq · Text & Voice</p>
+            </div>
+          </div>
+
+          {/* Language selector */}
+          <div className="flex gap-1">
+            {LANGUAGES.map((l) => (
+              <button
+                key={l.code}
+                onClick={() => setLang(l)}
+                className={`px-3 py-1 rounded-lg text-xs font-medium transition-colors ${
+                  lang.code === l.code
+                    ? "bg-blue-600 text-white"
+                    : "bg-zinc-800 text-zinc-400 hover:bg-zinc-700"
+                }`}
+              >
+                {l.label}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -156,7 +183,7 @@ export default function HealthAssistant() {
             onChange={(e) => setInputText(e.target.value)}
             onKeyDown={handleKeyDown}
             disabled={loading || recording}
-            placeholder="Type a health question..."
+            placeholder={`Type in ${lang.label}...`}
             className="flex-1 bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-2 text-sm text-white placeholder-zinc-500 outline-none focus:border-blue-500 disabled:opacity-50"
           />
 
