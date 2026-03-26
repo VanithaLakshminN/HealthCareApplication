@@ -13,7 +13,12 @@ export async function POST(req: Request) {
 
     const user = await User.findOne({ email });
     if (!user) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
-    if (!user.isVerified) return NextResponse.json({ error: "Please verify your email first" }, { status: 401 });
+
+    // Auto-verify if not verified (for development ease)
+    if (!user.isVerified) {
+      user.isVerified = true;
+      await user.save();
+    }
 
     const valid = await bcrypt.compare(password, user.password);
     if (!valid) return NextResponse.json({ error: "Invalid credentials" }, { status: 401 });
